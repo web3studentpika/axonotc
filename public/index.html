@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AXON OTC 交易平台</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+      background: linear-gradient(180deg,#f8fbff 0%,#eef4ff 100%);
+      color: #0f172a;
+      min-height: 100vh;
+    }
+    .header {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:20px 28px; border-bottom:1px solid #dbe7f5;
+      background: rgba(255,255,255,.88); backdrop-filter: blur(8px);
+      position: sticky; top: 0; z-index: 10;
+    }
+    .header h1 { color:#2563eb; font-size:28px; }
+    .contract { color:#64748b; font-size:12px; }
+    .wrap { max-width: 1680px; margin: 0 auto; padding: 24px; display:grid; grid-template-columns: 1fr 420px; gap:24px; }
+    .panel {
+      background: rgba(255,255,255,.88); border:1px solid #dbe7f5; border-radius:14px;
+      padding:20px; backdrop-filter: blur(8px); box-shadow: 0 10px 30px rgba(37,99,235,.06);
+    }
+    .panel h2 { font-size:20px; margin-bottom:16px; color:#0f172a; }
+    .tabs,.main-tabs { display:flex; gap:8px; background: #eef4ff; padding:6px; border-radius:12px; margin-bottom:18px; }
+    .tab,.main-tab {
+      flex:1; padding:12px 14px; border:none; border-radius:10px; cursor:pointer;
+      background:transparent; color:#64748b; font-weight:600;
+      transition: all .2s ease;
+    }
+    .tab.active,.main-tab.active { background:#2563eb; color:#fff; box-shadow: 0 8px 20px rgba(37,99,235,.22); }
+    .tab-pane,.main-pane { display:none; }
+    .tab-pane.active,.main-pane.active { display:block; }
+    .stats { display:grid; grid-template-columns: repeat(4,1fr); gap:14px; margin-bottom:18px; }
+    .stat { background: #f8fbff; border:1px solid #dbe7f5; border-radius:12px; padding:14px; }
+    .stat .label { color:#64748b; font-size:13px; margin-bottom:6px; }
+    .stat .value { font-size:24px; font-weight:700; }
+    .tips { display:grid; grid-template-columns: repeat(3,1fr); gap:14px; margin-bottom:18px; }
+    .tip { background: #f8fbff; border:1px solid #dbe7f5; border-radius:12px; padding:14px; }
+    .tip .t { color:#2563eb; font-weight:700; margin-bottom:6px; }
+    .tip .d { color:#64748b; font-size:13px; line-height:1.5; }
+    .toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
+    .toolbar .right { display:flex; gap:10px; align-items:center; flex-wrap: wrap; }
+    .btn {
+      border:none; border-radius:10px; cursor:pointer; padding:10px 16px; font-weight:700;
+      color:#fff; background:#2563eb; transition: transform .15s ease, box-shadow .2s ease, opacity .2s ease;
+    }
+    .btn.secondary { background:#64748b; }
+    .btn.success { background:#16a34a; }
+    .btn.warn { background:#d97706; }
+    .btn.danger { background:#dc2626; }
+    .btn.small { padding:6px 10px; font-size:12px; }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(37,99,235,.18); }
+    .btn:disabled { opacity:.6; cursor:not-allowed; }
+    table { width:100%; border-collapse: collapse; }
+    th,td { padding:12px 10px; border-bottom:1px solid #e2e8f0; text-align:left; font-size:14px; }
+    th { color:#64748b; font-size:12px; text-transform:uppercase; background: #f8fbff; }
+    tr:hover td { background: #f8fbff; }
+    .badge { display:inline-block; border-radius:999px; padding:4px 10px; font-size:12px; font-weight:700; }
+    .b-active { color:#22c55e; background:rgba(34,197,94,.18); }
+    .b-locked,.b-cancelpending { color:#fbbf24; background:rgba(251,191,36,.18); }
+    .b-paymentsent { color:#60a5fa; background:rgba(96,165,250,.18); }
+    .b-completed { color:#22c55e; background:rgba(34,197,94,.18); }
+    .b-cancelled { color:#cbd5e1; background:rgba(148,163,184,.18); }
+    .b-dispute { color:#f87171; background:rgba(248,113,113,.18); }
+    .chain { display:inline-block; border-radius:8px; padding:3px 8px; font-size:12px; background:#ede9fe; color:#6d28d9; }
+    .ok { color:#16a34a; font-weight:700; }
+    .muted { color:#64748b; }
+    .card { background: #f8fbff; border:1px solid #dbe7f5; border-radius:12px; padding:14px; margin-bottom:12px; }
+    .row { display:flex; justify-content:space-between; gap:12px; padding:7px 0; border-bottom:1px solid #e2e8f0; }
+    .row:last-child { border-bottom:none; }
+    .input { width:100%; padding:12px; border-radius:10px; border:1px solid #cbd5e1; background: #fff; color:#0f172a; }
+    .group { margin-bottom:14px; }
+    .group label { display:block; color:#334155; margin-bottom:8px; font-size:14px; }
+    .wallet { background: #f8fbff; border:1px solid #dbe7f5; border-radius:12px; padding:16px; margin-top:14px; }
+    .addr { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-all; color:#2563eb; font-size:13px; }
+    .balances { display:grid; grid-template-columns: repeat(2,1fr); gap:10px; margin-top:12px; }
+    .bal { background: #fff; border:1px solid #dbe7f5; border-radius:10px; padding:10px; }
+    .bal .k { color:#64748b; font-size:12px; }
+    .bal .v { font-size:17px; font-weight:700; }
+    .alert { border-radius:10px; padding:12px 14px; margin: 0 0 14px; }
+    .alert.info { color:#1d4ed8; border:1px solid #bfdbfe; background:#eff6ff; }
+    .alert.success { color:#15803d; border:1px solid #bbf7d0; background:#f0fdf4; }
+    .alert.error { color:#b91c1c; border:1px solid #fecaca; background:#fef2f2; }
+    .toast-stack {
+      position: fixed; right: 18px; top: 84px; z-index: 1200;
+      display:flex; flex-direction:column; gap:10px; width:min(420px, calc(100vw - 24px));
+      pointer-events:none;
+    }
+    .toast {
+      border-radius:12px; padding:12px 14px; border:1px solid #dbe7f5; background:rgba(255,255,255,.96);
+      box-shadow: 0 16px 40px rgba(15,23,42,.14); color:#0f172a;
+      transform: translateY(-6px); opacity:0; transition: all .22s ease;
+    }
+    .toast.show { transform: translateY(0); opacity:1; }
+    .toast.info { color:#1d4ed8; border-color:#bfdbfe; background:#eff6ff; }
+    .toast.success { color:#15803d; border-color:#bbf7d0; background:#f0fdf4; }
+    .toast.error { color:#b91c1c; border-color:#fecaca; background:#fef2f2; }
+    .modal-mask {
+      position:fixed; inset:0; background: rgba(15,23,42,.28); display:none; align-items:center; justify-content:center; z-index:1000;
+    }
+    .modal-mask.show { display:flex; }
+    .modal {
+      width:min(560px,92vw); max-height:88vh; overflow:auto; background:#ffffff; border:1px solid #dbe7f5; border-radius:14px; padding:20px; box-shadow: 0 20px 60px rgba(15,23,42,.18);
+    }
+    .modal h3 { margin-bottom:14px; }
+    .actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .empty { padding:54px 20px; text-align:center; color:#64748b; }
+    .footer-note { color:#64748b; font-size:12px; text-align:right; margin-top:10px; }
+    .spinning { animation: spin .9s linear infinite; display:inline-block; }
+    .pulse-refresh { animation: pulseRefresh .55s ease-out; }
+    .toolbar-refresh { display:flex; align-items:center; gap:8px; }
+    .refresh-status { min-width:92px; font-size:12px; color:#64748b; opacity:0; transition: opacity .2s ease, color .2s ease; white-space:nowrap; }
+    .refresh-status.show { opacity:1; }
+    .refresh-status.ok { color:#15803d; }
+    .refresh-status.loading { color:#2563eb; }
+    .refresh-status.error { color:#b91c1c; }
+    .table-shell { position:relative; border-radius:12px; overflow:hidden; }
+    .table-shell.loading::before {
+      content:''; position:absolute; left:0; top:0; width:100%; height:3px;
+      background: linear-gradient(90deg, transparent, #60a5fa, transparent);
+      animation: tableSweep 1s ease-in-out infinite; z-index:2;
+    }
+    .robot-grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    .history-list { max-height:220px; overflow:auto; display:flex; flex-direction:column; gap:8px; }
+    .history-item { background:#fff; border:1px solid #dbe7f5; border-radius:10px; padding:10px; }
+    .history-meta { display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
+    .mini-tag { display:inline-block; border-radius:999px; padding:3px 8px; font-size:12px; background:#eef4ff; color:#2563eb; }
+    .mine-list { display:flex; flex-direction:column; gap:10px; }
+    .mine-row {
+      display:grid; grid-template-columns: minmax(80px,100px) minmax(90px,120px) minmax(90px,120px) minmax(110px,150px) minmax(110px,150px) 1fr auto;
+      gap:10px; align-items:center; background:#f8fbff; border:1px solid #dbe7f5; border-radius:12px; padding:12px;
+    }
+    .mine-cell { min-width:0; }
+    .mine-cell .label { color:#64748b; font-size:12px; margin-bottom:2px; }
+    .mine-cell .value { font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .mine-actions { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes pulseRefresh { 0% { opacity:.72; transform: translateY(2px); filter: blur(.2px); } 100% { opacity:1; transform: translateY(0); filter: blur(0); } }
+    @keyframes tableSweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+    @media (max-width: 1100px) {
+      .wrap { grid-template-columns: 1fr; }
+      .stats,.tips { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 700px) {
+      .stats,.tips,.balances { grid-template-columns: 1fr; }
+      .header { display:block; }
+      .contract { margin-top:10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🔷 AXON OTC 交易平台</h1>
+    <div class="contract">合约地址：0x10063340374db851e2628D06F4732d5FF814eB34 ｜ Axon Chain ID：8210</div>
+  </div>
+
+  <div class="wrap">
+    <div>
+      <div class="main-tabs">
+        <button id="mainTabMarket" class="main-tab active" onclick="switchMainTab('market')">📊 市场订单</button>
+        <button id="mainTabTrades" class="main-tab" onclick="switchMainTab('trades')">🧾 最近成交记录</button>
+        <button id="mainTabMine" class="main-tab" onclick="switchMainTab('mine')">📋 我的订单</button>
+      </div>
+
+      <div id="pane-market" class="main-pane active">
+        <div class="panel">
+          <div class="tips">
+            <div class="tip"><div class="t">🛡️ 买方零 Axon Gas</div><div class="d">买方只需在 BSC / Arbitrum 上持有稳定币和少量 gas，无需在 Axon 链上手动操作。</div></div>
+            <div class="tip"><div class="t">📮 专属付款地址</div><div class="d">每笔订单由 Keeper 分配独立付款地址，请勿直接向卖家地址转账。</div></div>
+            <div class="tip"><div class="t">⚡ 自动放款</div><div class="d">Keeper 检测到付款后，会自动完成放 AXON 与转稳定币流程。</div></div>
+          </div>
+
+          <div class="stats">
+            <div class="stat"><div class="label">活跃订单</div><div id="statActive" class="value">0</div></div>
+            <div class="stat"><div class="label">最低价格</div><div id="statMin" class="value">$0.0000</div></div>
+            <div class="stat"><div class="label">平均价格</div><div id="statAvg" class="value">$0.0000</div></div>
+            <div class="stat"><div class="label">24h 交易额</div><div id="statVolume24h" class="value">$0.00</div></div>
+          </div>
+
+          <div class="toolbar">
+            <h2 style="margin:0;">市场订单</h2>
+            <div class="right">
+              <select id="filterStatus" class="input" style="width:130px;padding:8px 10px;" onchange="applyFilters()">
+                <option value="purchasable" selected>可购买</option>
+                <option value="all">全部状态</option>
+                <option value="Active">仅活跃</option>
+
+                <option value="Completed">仅已完成</option>
+                <option value="CancelPending">仅取消中</option>
+                <option value="Cancelled">仅已取消</option>
+                <option value="Dispute">仅争议中</option>
+              </select>
+              <select id="filterChain" class="input" style="width:110px;padding:8px 10px;" onchange="applyFilters()">
+                <option value="">全部链</option>
+                <option value="56">BSC</option>
+                <option value="42161">Arbitrum</option>
+              </select>
+              <select id="filterToken" class="input" style="width:110px;padding:8px 10px;" onchange="applyFilters()">
+                <option value="">全部代币</option>
+                <option value="USDT">USDT</option>
+                <option value="USDC">USDC</option>
+              </select>
+              <div class="toolbar-refresh">
+                <button id="refreshBtn" class="btn small" onclick="manualRefresh(event)">刷新</button>
+                <span id="refreshStatus" class="refresh-status">自动 3 秒刷新</span>
+              </div>
+            </div>
+          </div>
+
+          <div id="marketAlert"></div>
+          <div id="marketTable" class="table-shell"></div>
+          <div id="marketTime" class="footer-note"></div>
+        </div>
+      </div>
+
+      <div id="pane-trades" class="main-pane">
+        <div class="panel" style="padding:16px;">
+          <h2 style="margin-bottom:12px;">最近成交记录</h2>
+          <div id="recentTrades" class="empty" style="padding:20px 12px;">暂无最近成交</div>
+        </div>
+      </div>
+
+      <div id="pane-mine" class="main-pane">
+        <div class="panel">
+          <div class="toolbar">
+            <h2 style="margin:0;">我的订单</h2>
+            <div class="right">
+              <select id="mineFilterStatus" class="input" style="width:130px;padding:8px 10px;" onchange="renderMine()">
+                <option value="all">全部状态</option>
+                <option value="Active">仅活跃</option>
+                <option value="Completed">仅已完成</option>
+                <option value="CancelPending">仅取消中</option>
+                <option value="Cancelled">仅已取消</option>
+                <option value="Dispute">仅争议中</option>
+              </select>
+            </div>
+          </div>
+          <div id="mineWrap" class="empty">请先连接钱包后查看。</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="tabs">
+        <button id="tabWallet" class="tab active" onclick="switchSideTab('wallet')">💼 钱包</button>
+        <button id="tabSell" class="tab" onclick="switchSideTab('sell')">📤 创建卖单</button>
+        <button id="tabBot" class="tab" onclick="switchSideTab('bot')">🤖 自动机器人</button>
+      </div>
+
+      <div id="side-wallet" class="tab-pane active">
+        <div class="panel">
+          <h2>连接钱包</h2>
+          <div id="walletAlert"></div>
+          <div class="actions" style="margin-top:0;">
+            <button class="btn" style="flex:1;" onclick="connectBrowserWallet('metamask')">连接 MetaMask</button>
+            <button class="btn secondary" style="flex:1;" onclick="connectBrowserWallet('okx')">连接 OKX Wallet</button>
+          </div>
+          <div class="group" style="margin-top:14px;">
+            <label>当前模式</label>
+            <div class="card">
+              <div class="row"><span class="muted">普通购买</span><strong>浏览器钱包插件</strong></div>
+              <div class="row"><span class="muted">自动交易机器人</span><strong>私钥模式（独立运行）</strong></div>
+            </div>
+          </div>
+
+          <div id="walletBox" class="wallet" style="display:none;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+              <div class="ok">✅ 钱包已连接</div>
+              <button class="btn small secondary" onclick="refreshWalletNow()">刷新余额</button>
+            </div>
+            <div style="margin-top:10px;" class="muted">钱包插件</div>
+            <div id="walletProviderName" class="addr" style="font-size:13px;">-</div>
+            <div style="margin-top:10px;" class="muted">地址</div>
+            <div id="walletAddr" class="addr"></div>
+            <div class="balances">
+              <div class="bal"><div class="k">AXON</div><div id="balAxon" class="v">-</div></div>
+              <div class="bal"><div class="k">BSC USDT</div><div id="balBscUsdt" class="v">-</div></div>
+              <div class="bal"><div class="k">BSC USDC</div><div id="balBscUsdc" class="v">-</div></div>
+              <div class="bal"><div class="k">Arb USDT</div><div id="balArbUsdt" class="v">-</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="side-sell" class="tab-pane">
+        <div class="panel">
+          <h2>创建卖单</h2>
+          <div id="sellAlert"></div>
+          <div class="group"><label>AXON 数量</label><input id="sellAmount" class="input" type="number" min="0" step="0.01" placeholder="100"></div>
+          <div class="group"><label>单价 (USD)</label><input id="sellPrice" class="input" type="number" min="0" step="0.0001" placeholder="0.0200"></div>
+          <div class="group"><label>收款链</label><select id="sellChain" class="input"><option value="56">BSC</option><option value="42161">Arbitrum</option></select></div>
+          <div class="group"><label>收款代币</label><select id="sellToken" class="input"><option value="USDT">USDT</option><option value="USDC">USDC</option></select></div>
+          <div class="group"><label>自定义收款地址（可选）</label><input id="sellPaymentAddr" class="input" type="text" placeholder="默认使用当前连接钱包地址"></div>
+          <div class="card">
+            <div class="row"><span class="muted">预计收款</span><strong id="sellTotal">$0.00</strong></div>
+            <div class="row"><span class="muted">手续费</span><strong>0.3%</strong></div>
+            <div class="row"><span class="muted">说明</span><strong style="font-size:12px;">买方付款到 Keeper 专属地址，不是卖方收款地址</strong></div>
+          </div>
+          <button class="btn success" style="width:100%;" onclick="createSellOrder()">创建卖单</button>
+        </div>
+      </div>
+
+      <div id="side-bot" class="tab-pane">
+        <div class="panel">
+          <h2>自动交易机器人</h2>
+          <div id="botAlert"></div>
+          <div class="robot-grid">
+            <div class="group"><label>最高单价 (USD)</label><input id="botMaxPrice" class="input" type="number" step="0.0001" placeholder="0.0200"></div>
+            <div class="group"><label>最小数量 (AXON)</label><input id="botMinAmount" class="input" type="number" step="0.01" placeholder="10"></div>
+            <div class="group"><label>付款链</label><select id="botChain" class="input"><option value="">不限</option><option value="56">BSC</option><option value="42161">Arbitrum</option></select></div>
+            <div class="group"><label>付款代币</label><select id="botToken" class="input"><option value="">不限</option><option value="USDT">USDT</option><option value="USDC">USDC</option></select></div>
+            <div class="group"><label>轮询间隔(ms)</label><input id="botInterval" class="input" type="number" step="1000" value="10000"></div>
+            <div class="group"><label>买方地址</label><input id="botBuyerAddress" class="input" type="text" placeholder="默认用机器人私钥地址"></div>
+          </div>
+          <div class="group"><label>机器人私钥</label><input id="botPrivateKey" class="input" type="password" placeholder="机器人自动购买专用私钥"></div>
+          <div class="group" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:8px;"><input id="botOnlyPurchasable" type="checkbox" checked> 只监控可购买订单</label>
+            <label style="display:flex;align-items:center;gap:8px;"><input id="botAutoExecute" type="checkbox"> 自动执行购买</label>
+          </div>
+          <div class="actions">
+            <button class="btn" onclick="saveBotConfig()">保存策略</button>
+            <button class="btn success" onclick="startBot()">启动监控</button>
+            <button class="btn warn" onclick="runBotOnce()">立即扫描</button>
+            <button class="btn danger" onclick="stopBot()">停止机器人</button>
+          </div>
+          <div class="card" style="margin-top:14px;">
+            <div class="row"><span class="muted">状态</span><strong id="botStatus">未加载</strong></div>
+            <div class="row"><span class="muted">最近扫描</span><strong id="botLastRun">-</strong></div>
+            <div class="row"><span class="muted">最近命中订单</span><strong id="botLastOrder">-</strong></div>
+            <div class="row"><span class="muted">最近动作</span><strong id="botLastAction">-</strong></div>
+            <div class="row"><span class="muted">最近错误</span><strong id="botLastError">-</strong></div>
+          </div>
+          <div class="group">
+            <label>机器人历史</label>
+            <div id="botHistory" class="history-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalMask" class="modal-mask">
+    <div class="modal">
+      <h3 id="modalTitle">订单操作</h3>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+  <div id="toastStack" class="toast-stack"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.5/dist/ethers.umd.min.js"></script>
+  <script>
+    let orders = [];
+    let currentWallet = null;
+    let currentWalletProvider = null;
+    let currentWalletProviderName = null;
+    let autoTimer = null;
+    let walletAutoTimer = null;
+    let refreshStatusTimer = null;
+    let filterTimer = null;
+    let currentLoadSeq = 0;
+    let isLoadingOrders = false;
+    let recentTradesAll = [];
+    let recentTradesPage = 1;
+    const RECENT_TRADES_PAGE_SIZE = 10;
+
+    function escapeHtml(s) {
+      return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    }
+
+    function badgeClass(status) {
+      return {
+        Active: 'b-active',
+        Completed: 'b-completed',
+        CancelPending: 'b-cancelpending',
+        Cancelled: 'b-cancelled',
+        Dispute: 'b-dispute'
+      }[status] || 'b-cancelled';
+    }
+
+    function show(elId, msg, type='info', durationMs = 3200) {
+      const host = document.getElementById(elId);
+      if (host) host.innerHTML = '';
+      const stack = document.getElementById('toastStack');
+      if (!stack) return;
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = msg;
+      stack.appendChild(toast);
+      requestAnimationFrame(() => toast.classList.add('show'));
+      const remove = () => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 220);
+      };
+      setTimeout(remove, durationMs);
+    }
+    function clear(elId) {
+      const host = document.getElementById(elId);
+      if (host) host.innerHTML = '';
+    }
+
+    function formatRemainingMs(ms) {
+      const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${minutes}分${String(seconds).padStart(2, '0')}秒`;
+    }
+
+    function findOrderById(orderId) {
+      return (window.__myOrders || []).find(o => o.id === orderId) || orders.find(o => o.id === orderId) || null;
+    }
+
+    function getCancelCooldownRemainingMs(order) {
+      if (!order || order.status !== 'CancelPending' || !Number(order.cancelRequestedAt)) return 0;
+      const dueAtMs = Number(order.cancelRequestedAt) * 1000 + 15 * 60 * 1000;
+      return Math.max(0, dueAtMs - Date.now());
+    }
+
+    function switchMainTab(name) {
+      document.getElementById('mainTabMarket')?.classList.toggle('active', name === 'market');
+      document.getElementById('mainTabTrades')?.classList.toggle('active', name === 'trades');
+      document.getElementById('mainTabMine')?.classList.toggle('active', name === 'mine');
+      document.getElementById('pane-market')?.classList.toggle('active', name === 'market');
+      document.getElementById('pane-trades')?.classList.toggle('active', name === 'trades');
+      document.getElementById('pane-mine')?.classList.toggle('active', name === 'mine');
+      if (name === 'mine') loadMyOrders().catch(()=>renderMine());
+      if (name === 'trades') loadSummary().catch(()=>{});
+    }
+
+    function switchSideTab(name) {
+      document.getElementById('tabWallet').classList.toggle('active', name === 'wallet');
+      document.getElementById('tabSell').classList.toggle('active', name === 'sell');
+      document.getElementById('tabBot').classList.toggle('active', name === 'bot');
+      document.getElementById('side-wallet').classList.toggle('active', name === 'wallet');
+      document.getElementById('side-sell').classList.toggle('active', name === 'sell');
+      document.getElementById('side-bot').classList.toggle('active', name === 'bot');
+      if (name === 'bot') loadBotState().catch(()=>{});
+    }
+
+    function openModal(title, bodyHtml) {
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalBody').innerHTML = bodyHtml;
+      document.getElementById('modalMask').classList.add('show');
+    }
+    function closeModal() {
+      document.getElementById('modalMask').classList.remove('show');
+    }
+
+    async function api(path, options = {}) {
+      const { timeoutMs = 20000, ...fetchOptions } = options || {};
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const res = await fetch(path, {
+          headers: { 'Content-Type': 'application/json' },
+          ...fetchOptions,
+          signal: controller.signal
+        });
+        return await res.json();
+      } catch (e) {
+        if (e.name === 'AbortError') throw new Error('请求超时，请稍后重试');
+        throw e;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    function setRefreshStatus(text, type = '', sticky = false) {
+      const el = document.getElementById('refreshStatus');
+      if (!el) return;
+      el.textContent = text;
+      el.className = `refresh-status show ${type}`.trim();
+      if (refreshStatusTimer) clearTimeout(refreshStatusTimer);
+      if (!sticky) {
+        refreshStatusTimer = setTimeout(() => {
+          el.className = 'refresh-status';
+        }, 1800);
+      }
+    }
+
+    function renderRecentTrades() {
+      const host = document.getElementById('recentTrades');
+      if (!host) return;
+      const totalPages = Math.max(1, Math.ceil(recentTradesAll.length / RECENT_TRADES_PAGE_SIZE));
+      if (recentTradesPage > totalPages) recentTradesPage = totalPages;
+      const start = (recentTradesPage - 1) * RECENT_TRADES_PAGE_SIZE;
+      const current = recentTradesAll.slice(start, start + RECENT_TRADES_PAGE_SIZE);
+      host.innerHTML = current.length
+        ? `${current.map(o => `
+          <div class="card" style="margin-bottom:10px;">
+            <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;">
+              <strong>订单 #${o.id}</strong>
+              <span class="badge ${badgeClass(o.status)}">${escapeHtml(o.status_label)}</span>
+            </div>
+            <div class="history-meta">
+              <span class="mini-tag">${Number(o.amount_axon).toFixed(2)} AXON</span>
+              <span class="mini-tag">$${Number(o.total_payment).toFixed(2)} ${escapeHtml(o.payment_token)}</span>
+              <span class="mini-tag">${escapeHtml(o.payment_chain_name)}</span>
+            </div>
+            <div class="card" style="margin-top:10px;margin-bottom:0;background:#fff;">
+              <div class="row"><span class="muted">卖方地址</span><strong style="font-size:12px;word-break:break-all;">${escapeHtml(String(o.seller || '-'))}</strong></div>
+              <div class="row"><span class="muted">买方地址</span><strong style="font-size:12px;word-break:break-all;">${escapeHtml(String(o.buyer || '-'))}</strong></div>
+            </div>
+          </div>`).join('')}
+          <div class="actions" style="justify-content:flex-end;">
+            <button class="btn secondary small" ${recentTradesPage <= 1 ? 'disabled' : ''} onclick="changeRecentTradesPage(-1)">上一页</button>
+            <span class="muted" style="align-self:center;">第 ${recentTradesPage} / ${totalPages} 页</span>
+            <button class="btn secondary small" ${recentTradesPage >= totalPages ? 'disabled' : ''} onclick="changeRecentTradesPage(1)">下一页</button>
+          </div>`
+        : '<div class="empty" style="padding:20px 12px;">暂无最近成交</div>';
+    }
+
+    function changeRecentTradesPage(delta) {
+      const totalPages = Math.max(1, Math.ceil(recentTradesAll.length / RECENT_TRADES_PAGE_SIZE));
+      recentTradesPage = Math.max(1, Math.min(totalPages, recentTradesPage + delta));
+      renderRecentTrades();
+    }
+
+    async function loadSummary() {
+      const data = await api('/api/orders/summary');
+      if (!data.success) return;
+      document.getElementById('statVolume24h').textContent = `$${Number(data.volume24h || 0).toFixed(2)}`;
+      recentTradesAll = data.recentTrades || [];
+      renderRecentTrades();
+    }
+
+    async function loadOrders(animated = true, source = 'auto') {
+      const loadSeq = ++currentLoadSeq;
+      const qs = new URLSearchParams();
+      const statusFilter = document.getElementById('filterStatus')?.value || 'purchasable';
+      const chainFilter = document.getElementById('filterChain')?.value || '';
+      const tokenFilter = document.getElementById('filterToken')?.value || '';
+      const tableEl = document.getElementById('marketTable');
+
+      isLoadingOrders = true;
+      if (tableEl) tableEl.classList.add('loading');
+      if (animated && tableEl) tableEl.classList.add('pulse-refresh');
+      if (source === 'manual') setRefreshStatus('刷新中...', 'loading', true);
+      if (source === 'filter') setRefreshStatus('筛选中...', 'loading', true);
+
+      if (statusFilter === 'purchasable') {
+        qs.set('purchasable', '1');
+      } else if (statusFilter !== 'all') {
+        qs.set('status', statusFilter);
+      }
+      if (chainFilter) qs.set('chainId', chainFilter);
+      if (tokenFilter) qs.set('token', tokenFilter);
+
+      try {
+        const data = await api('/api/orders' + (qs.toString() ? `?${qs.toString()}` : ''));
+        if (loadSeq !== currentLoadSeq) return;
+        if (!data.success) throw new Error(data.error || '加载订单失败');
+        orders = data.orders || [];
+        renderMarket();
+        renderMine();
+        loadSummary().catch(()=>{});
+        if (source === 'manual') setRefreshStatus('刚刚已刷新', 'ok');
+        if (source === 'filter') setRefreshStatus('筛选已更新', 'ok');
+      } finally {
+        if (loadSeq === currentLoadSeq) {
+          isLoadingOrders = false;
+          if (tableEl) {
+            tableEl.classList.remove('loading');
+            setTimeout(() => tableEl.classList.remove('pulse-refresh'), 500);
+          }
+        }
+      }
+    }
+
+    function applyFilters() {
+      if (filterTimer) clearTimeout(filterTimer);
+      filterTimer = setTimeout(() => {
+        loadOrders(true, 'filter').catch(err => {
+          setRefreshStatus('筛选失败', 'error');
+          show('marketAlert', err.message, 'error');
+        });
+      }, 120);
+    }
+
+    function renderMarket() {
+      const active = orders.filter(o => o.status === 'Active');
+      const min = active.length ? Math.min(...active.map(o => o.price_usd)) : 0;
+      const avg = active.length ? active.reduce((s,o)=>s+o.price_usd,0)/active.length : 0;
+
+      document.getElementById('statActive').textContent = active.length;
+      document.getElementById('statMin').textContent = `$${min.toFixed(4)}`;
+      document.getElementById('statAvg').textContent = `$${avg.toFixed(4)}`;
+
+      if (!orders.length) {
+        document.getElementById('marketTable').innerHTML = '<div class="empty">暂无订单</div>';
+        return;
+      }
+
+      document.getElementById('marketTable').innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>数量</th><th>单价</th><th>总价</th><th>链</th><th>代币</th><th>状态</th><th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${orders.map(o => `
+              <tr>
+                <td>#${o.id}</td>
+                <td><strong>${Number(o.amount_axon).toFixed(2)}</strong> AXON</td>
+                <td class="${o.status === 'Active' && o.price_usd === min ? 'ok' : ''}">$${Number(o.price_usd).toFixed(4)}</td>
+                <td>$${Number(o.total_payment).toFixed(2)}</td>
+                <td><span class="chain">${escapeHtml(o.payment_chain_name)}</span></td>
+                <td>${escapeHtml(o.payment_token)}</td>
+                <td><span class="badge ${badgeClass(o.status)}">${escapeHtml(o.status_label)}</span></td>
+                <td>${o.status === 'Active' ? `<button class="btn success small" onclick="openBuy(${o.id})">购买</button>` : '<span class="muted">-</span>'}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>`;
+
+      document.getElementById('marketTime').textContent = `最后更新：${new Date().toLocaleTimeString()}`;
+    }
+
+    async function loadMyOrders() {
+      if (!currentWallet) {
+        renderMine();
+        return;
+      }
+      const data = await api(`/api/orders?address=${encodeURIComponent(currentWallet)}`);
+      if (!data.success) throw new Error(data.error || '加载我的订单失败');
+      window.__myOrders = data.orders || [];
+      renderMine();
+    }
+
+    function myVisibleOrders() {
+      if (!currentWallet) return [];
+      return window.__myOrders || [];
+    }
+
+    function renderMine() {
+      const wrap = document.getElementById('mineWrap');
+      if (!currentWallet) {
+        wrap.className = 'empty';
+        wrap.innerHTML = '请先连接钱包后查看。';
+        return;
+      }
+      const statusFilter = document.getElementById('mineFilterStatus')?.value || 'all';
+      let mine = myVisibleOrders();
+      if (statusFilter !== 'all') mine = mine.filter(o => o.status === statusFilter);
+      if (!mine.length) {
+        wrap.className = 'empty';
+        wrap.innerHTML = '暂无符合条件的订单。';
+        return;
+      }
+      wrap.className = 'mine-list';
+      wrap.innerHTML = mine.map(o => {
+        const isSeller = o.seller.toLowerCase() === currentWallet.toLowerCase();
+        const actions = [];
+        const cooldownRemainingMs = getCancelCooldownRemainingMs(o);
+        if (!isSeller && o.status === 'Active') actions.push(`<button class="btn success small" onclick="buyFull(${o.id})">自动购买</button>`);
+        if (isSeller && o.status === 'Active') actions.push(`<button class="btn warn small" onclick="requestCancel(${o.id})">申请取消</button>`);
+        if (isSeller && o.status === 'CancelPending') {
+          actions.push(`<button class="btn secondary small" onclick="abortCancel(${o.id})">中止取消</button>`);
+          actions.push(`<button class="btn danger small" ${cooldownRemainingMs > 0 ? 'disabled' : ''} onclick="finalizeCancel(${o.id})">${cooldownRemainingMs > 0 ? `冷却中 ${formatRemainingMs(cooldownRemainingMs)}` : '确认取消'}</button>`);
+        }
+        if (o.status === 'Dispute') actions.push(`<button class="btn danger small" onclick="raiseDispute(${o.id})">争议</button>`);
+        return `
+          <div class="mine-row">
+            <div class="mine-cell"><div class="label">订单</div><div class="value">#${o.id}</div></div>
+            <div class="mine-cell"><div class="label">角色</div><div class="value">${isSeller ? '卖方' : '买方'}</div></div>
+            <div class="mine-cell"><div class="label">状态</div><div class="value"><span class="badge ${badgeClass(o.status)}">${escapeHtml(o.status_label)}</span></div></div>
+            <div class="mine-cell"><div class="label">数量</div><div class="value">${Number(o.amount_axon).toFixed(2)} AXON</div></div>
+            <div class="mine-cell"><div class="label">总价</div><div class="value">$${Number(o.total_payment).toFixed(2)} ${escapeHtml(o.payment_token)}</div></div>
+            <div class="mine-cell"><div class="label">说明</div><div class="value">${isSeller && o.status === 'CancelPending' ? (cooldownRemainingMs > 0 ? `取消冷却还需 ${formatRemainingMs(cooldownRemainingMs)}` : '已到时间，可确认取消') : `${escapeHtml(o.payment_chain_name)} / Keeper 专属付款地址`}</div></div>
+            <div class="mine-actions">${actions.join(' ') || '<span class="muted">无操作</span>'}</div>
+          </div>`;
+      }).join('');
+    }
+
+    async function refreshConnectedWalletInfo() {
+      if (!currentWallet) return;
+      const data = await api(`/api/wallet/${encodeURIComponent(currentWallet)}/balances`);
+      if (!data.success) throw new Error(data.error || '获取余额失败');
+      const b = data.balances || {};
+      document.getElementById('walletBox').style.display = 'block';
+      document.getElementById('walletAddr').textContent = currentWallet;
+      document.getElementById('walletProviderName').textContent = currentWalletProviderName || '浏览器钱包';
+      document.getElementById('balAxon').textContent = b.axon ?? '-';
+      document.getElementById('balBscUsdt').textContent = b['bsc-usdt'] ?? '-';
+      document.getElementById('balBscUsdc').textContent = b['bsc-usdc'] ?? '-';
+      document.getElementById('balArbUsdt').textContent = b['arb-usdt'] ?? '-';
+    }
+
+    async function refreshWalletNow() {
+      try {
+        await refreshConnectedWalletInfo();
+        show('walletAlert', '余额已刷新', 'success', 1800);
+      } catch (e) {
+        show('walletAlert', e.message || '余额刷新失败', 'error');
+      }
+    }
+
+    function startWalletAutoRefresh() {
+      if (walletAutoTimer) clearInterval(walletAutoTimer);
+      walletAutoTimer = null;
+      if (!currentWallet) return;
+      walletAutoTimer = setInterval(() => {
+        refreshConnectedWalletInfo().catch(()=>{});
+      }, 3000);
+    }
+
+    async function connectBrowserWallet(kind) {
+      clear('walletAlert');
+      const eth = window.ethereum;
+      if (!eth) return show('walletAlert', '未检测到浏览器钱包插件，请安装 MetaMask 或 OKX Wallet', 'error');
+
+      let provider = eth;
+      let providerName = kind === 'okx' ? 'OKX Wallet' : 'MetaMask';
+
+      if (Array.isArray(eth.providers) && eth.providers.length) {
+        if (kind === 'okx') provider = eth.providers.find(p => p.isOkxWallet) || eth.providers.find(p => p.isOKExWallet) || eth.providers[0];
+        else provider = eth.providers.find(p => p.isMetaMask) || eth.providers[0];
+      } else {
+        if (kind === 'okx' && !(eth.isOkxWallet || eth.isOKExWallet)) providerName = '浏览器钱包';
+        if (kind === 'metamask' && !eth.isMetaMask) providerName = '浏览器钱包';
+      }
+
+      const accounts = await provider.request({ method: 'eth_requestAccounts' });
+      currentWallet = accounts?.[0] || null;
+      currentWalletProvider = provider;
+      currentWalletProviderName = providerName;
+      if (!currentWallet) return show('walletAlert', '钱包连接失败', 'error');
+      await refreshConnectedWalletInfo();
+      startWalletAutoRefresh();
+      show('walletAlert', `${providerName} 已连接`, 'success');
+      loadMyOrders().catch(()=>renderMine());
+    }
+
+    function openBuy(orderId) {
+      if (!currentWallet) return show('marketAlert', '请先连接钱包', 'error');
+      const o = orders.find(x => x.id === orderId);
+      if (!o) return;
+      openModal('购买订单', `
+        <div class="card">
+          <div class="row"><span class="muted">订单 ID</span><strong>#${o.id}</strong></div>
+          <div class="row"><span class="muted">数量</span><strong>${Number(o.amount_axon).toFixed(2)} AXON</strong></div>
+          <div class="row"><span class="muted">应付金额</span><strong>$${Number(o.total_payment).toFixed(2)} ${escapeHtml(o.payment_token)}</strong></div>
+          <div class="row"><span class="muted">付款链</span><span class="chain">${escapeHtml(o.payment_chain_name)}</span></div>
+        </div>
+        <div class="alert info">V7 流程：先执行 get_payment_info 获取专属付款地址，再按 buy_full 的流程向该地址支付稳定币。请勿直接向卖家地址转账。</div>
+        <div class="actions">
+          <button class="btn secondary" onclick="closeModal()">关闭</button>
+          <button class="btn success" onclick="buyFull(${o.id})">自动购买</button>
+        </div>`);
+    }
+
+    async function buyFull(orderId) {
+      if (!currentWallet || !currentWalletProvider) return show('marketAlert', '请先连接钱包插件', 'error');
+      const o = orders.find(x => x.id === orderId);
+      if (!o) return;
+
+      try {
+        openModal('自动购买中', `<div class="alert info"><span class="spinning">⏳</span> 第 1 步：正在向 Keeper 获取专属付款地址...</div>`);
+        const data = await api(`/api/orders/${orderId}/payment-info`, {
+          method: 'POST',
+          body: JSON.stringify({ buyerAddress: currentWallet }),
+          timeoutMs: 12000
+        });
+        if (!data.success) {
+          openModal('自动购买失败', `
+            <div class="alert error">${escapeHtml(data.error || '获取付款信息失败')}</div>
+            <div class="actions"><button class="btn secondary" onclick="closeModal()">关闭</button></div>`);
+          return;
+        }
+
+        const chainIdNum = Number(data.chainId || o.payment_chain_id);
+        const token = String(data.token || o.payment_token).toUpperCase();
+        const tokenMap = {
+          56: {
+            USDT: '0x55d398326f99059fF775485246999027B3197955',
+            USDC: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d'
+          },
+          42161: {
+            USDT: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
+            USDC: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831'
+          }
+        };
+        const rpcMap = {
+          56: { chainIdHex: '0x38', chainName: 'BSC' },
+          42161: { chainIdHex: '0xa4b1', chainName: 'Arbitrum One' }
+        };
+        const tokenAddr = tokenMap[chainIdNum]?.[token];
+        const chainInfo = rpcMap[chainIdNum];
+        if (!tokenAddr || !chainInfo) {
+          openModal('自动购买失败', `<div class="alert error">暂不支持该付款链或代币：${escapeHtml(String(chainIdNum))} / ${escapeHtml(token)}</div>`);
+          return;
+        }
+
+        try {
+          openModal('自动购买中', `<div class="alert info"><span class="spinning">⏳</span> 第 2 步：正在切换到 ${escapeHtml(chainInfo.chainName)} 并检查余额...</div>`);
+          await currentWalletProvider.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: chainInfo.chainIdHex }]
+          });
+        } catch (switchErr) {
+          openModal('请先切换网络', `
+            <div class="alert error">请在钱包插件中切换到 ${escapeHtml(chainInfo.chainName)} 后重试。</div>
+            <div class="actions"><button class="btn secondary" onclick="closeModal()">关闭</button></div>`);
+          return;
+        }
+
+        const browserProvider = new ethers.BrowserProvider(currentWalletProvider);
+        const signer = await browserProvider.getSigner();
+        const tokenContract = new ethers.Contract(tokenAddr, ['function balanceOf(address) view returns (uint256)','function decimals() view returns (uint8)','function transfer(address to, uint256 value) returns (bool)'], signer);
+        const decimals = await tokenContract.decimals();
+        const amountStr = String(data.amount || o.total_payment);
+        const amount = ethers.parseUnits(amountStr, decimals);
+        const balance = await tokenContract.balanceOf(currentWallet);
+        if (balance < amount) {
+          openModal('余额不足', `
+            <div class="alert error">当前余额不足，需要 ${escapeHtml(amountStr)} ${escapeHtml(token)}。</div>
+            <div class="actions"><button class="btn secondary" onclick="closeModal()">关闭</button></div>`);
+          return;
+        }
+
+        openModal('请在钱包中确认付款', `
+          <div class="card">
+            <div class="row"><span class="muted">付款地址</span><strong style="font-size:12px;word-break:break-all;">${escapeHtml(data.paymentAddress || '-')}</strong></div>
+            <div class="row"><span class="muted">付款金额</span><strong>${escapeHtml(amountStr)} ${escapeHtml(token)}</strong></div>
+          </div>
+          <div class="alert info"><span class="spinning">⏳</span> 第 3 步：钱包插件即将弹出，请确认付款。</div>`);
+        const tx = await tokenContract.transfer(data.paymentAddress, amount);
+
+        openModal('付款已发送，正在验证订单', `
+          <div class="card">
+            <div class="row"><span class="muted">付款交易</span><strong style="font-size:12px;word-break:break-all;">${escapeHtml(tx.hash)}</strong></div>
+            <div class="row"><span class="muted">付款地址</span><strong style="font-size:12px;word-break:break-all;">${escapeHtml(data.paymentAddress || '-')}</strong></div>
+          </div>
+          <div class="alert info"><span class="spinning">⏳</span> 第 4 步：已发起付款，正在等待链上确认并检查订单完成状态...</div>`);
+
+        await tx.wait();
+        let finalOrder = null;
+        for (let i = 0; i < 18; i++) {
+          const orderResp = await api(`/api/orders/${orderId}`, { timeoutMs: 12000 });
+          if (orderResp.success && orderResp.order) {
+            finalOrder = orderResp.order;
+            if (finalOrder.status === 'Completed') break;
+          }
+          await new Promise(r => setTimeout(r, 5000));
+        }
+
+        if (finalOrder && finalOrder.status === 'Completed') {
+          openModal('自动购买成功', `
+            <div class="card">
+              <div class="row"><span class="muted">付款交易</span><strong style="font-size:12px;word-break:break-all;">${escapeHtml(tx.hash)}</strong></div>
+              <div class="row"><span class="muted">订单结果</span><strong>Completed</strong></div>
+            </div>
+            <div class="actions"><button class="btn success" onclick="closeModal()">完成</button></div>`);
+        } else {
+          openModal('付款已发出，等待最终完成', `
+            <div class="card">
+              <div class="row"><span class="muted">付款交易</span><strong style="font-size:12px;word-break:break-all;">${escapeHtml(tx.hash)}</strong></div>
+            </div>
+            <div class="alert info">付款已完成，但订单尚未在等待时间内切到 Completed。你可以稍后刷新继续查看。</div>
+            <div class="actions"><button class="btn secondary" onclick="closeModal()">关闭</button></div>`);
+        }
+
+        await refreshConnectedWalletInfo().catch(()=>{});
+        await loadOrders(true, 'manual').catch(()=>{});
+        await loadMyOrders().catch(()=>{});
+      } catch (e) {
+        const message = e?.message || '自动购买失败';
+        if (String(message).includes('user rejected') || String(message).includes('User denied') || String(message).includes('ACTION_REJECTED')) {
+          closeModal();
+          return show('marketAlert', '你已取消钱包交易，本次购买未提交', 'info', 3800);
+        }
+        openModal('自动购买失败', `
+          <div class="alert error">${escapeHtml(message)}</div>
+          <div class="actions"><button class="btn secondary" onclick="closeModal()">关闭</button></div>`);
+      }
+    }
+
+    async function waitForAxonTxRaw(txHash, timeoutMs = 120000, intervalMs = 3000) {
+      if (!currentWalletProvider) throw new Error('钱包插件不可用');
+      const start = Date.now();
+      while (Date.now() - start < timeoutMs) {
+        const receipt = await currentWalletProvider.request({
+          method: 'eth_getTransactionReceipt',
+          params: [txHash]
+        });
+        if (receipt) {
+          const statusHex = receipt.status || '0x0';
+          if (statusHex === '0x1' || statusHex === '0x01' || statusHex === 1) return receipt;
+          throw new Error('链上交易执行失败');
+        }
+        await new Promise(r => setTimeout(r, intervalMs));
+      }
+      throw new Error('等待链上确认超时，请稍后刷新查看');
+    }
+
+    async function sendAxonContractTx(fnSig, args, waitTitle, successMsg, alertId='marketAlert') {
+      if (!currentWallet || !currentWalletProvider) throw new Error('请先连接钱包');
+      await ensureAxonWalletNetwork();
+      const browserProvider = new ethers.BrowserProvider(currentWalletProvider);
+      const signer = await browserProvider.getSigner();
+      const iface = new ethers.Interface([fnSig]);
+      const fnName = fnSig.match(/function\s+(\w+)/)[1];
+      const data = iface.encodeFunctionData(fnName, args);
+      const tx = await signer.sendTransaction({ to: '0x10063340374db851e2628D06F4732d5FF814eB34', data });
+      openModal(waitTitle, `<div class="alert info"><span class="spinning">⏳</span> 钱包已提交交易，正在等待链上确认...</div>`);
+      await waitForAxonTxRaw(tx.hash);
+      closeModal();
+      await refreshConnectedWalletInfo().catch(()=>{});
+      await loadOrders(true, 'manual').catch(()=>{});
+      await loadMyOrders().catch(()=>{});
+      show(alertId, successMsg, 'success');
+      return tx.hash;
+    }
+
+    async function requestCancel(orderId) {
+      try {
+        await sendAxonContractTx('function requestCancelOrder(uint256 orderId)', [orderId], '申请取消中', '已申请取消');
+      } catch (e) {
+        show('marketAlert', e.message || '操作失败', 'error');
+      }
+    }
+
+    async function abortCancel(orderId) {
+      try {
+        await sendAxonContractTx('function abortCancel(uint256 orderId)', [orderId], '中止取消中', '已恢复订单');
+      } catch (e) {
+        show('marketAlert', e.message || '操作失败', 'error');
+      }
+    }
+
+    async function finalizeCancel(orderId) {
+      try {
+        const order = findOrderById(orderId);
+        const remainingMs = getCancelCooldownRemainingMs(order);
+        if (remainingMs > 0) {
+          return show('marketAlert', `订单 #${orderId} 还在取消冷却期，需再等待 ${formatRemainingMs(remainingMs)}`, 'info', 4200);
+        }
+        await sendAxonContractTx('function finalizeCancelOrder(uint256 orderId)', [orderId], '确认取消中', '订单已取消');
+      } catch (e) {
+        const message = e?.message || '操作失败';
+        const order = findOrderById(orderId);
+        const remainingMs = getCancelCooldownRemainingMs(order);
+        if (message.includes('OTC: cooldown active')) {
+          return show('marketAlert', `订单 #${orderId} 还在取消冷却期${remainingMs > 0 ? `，需再等待 ${formatRemainingMs(remainingMs)}` : ''}`, 'info', 4200);
+        }
+        show('marketAlert', message, 'error');
+      }
+    }
+
+    async function raiseDispute(orderId) {
+      try {
+        await sendAxonContractTx('function raiseDispute(uint256 orderId)', [orderId], '发起争议中', '争议已发起');
+      } catch (e) {
+        show('marketAlert', e.message || '操作失败', 'error');
+      }
+    }
+
+    async function ensureAxonWalletNetwork() {
+      if (!currentWalletProvider) throw new Error('请先连接钱包插件');
+      try {
+        await currentWalletProvider.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x2012' }]
+        });
+      } catch (switchErr) {
+        try {
+          await currentWalletProvider.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: '0x2012',
+              chainName: 'Axon Mainnet',
+              nativeCurrency: { name: 'AXON', symbol: 'AXON', decimals: 18 },
+              rpcUrls: ['https://mainnet-rpc.axonchain.ai/'],
+              blockExplorerUrls: ['https://mainnet-explorer.axonchain.ai/']
+            }]
+          });
+        } catch (addErr) {
+          throw new Error('请先在钱包插件中切换到 Axon Mainnet');
+        }
+      }
+    }
+
+    async function createSellOrder() {
+      clear('sellAlert');
+      if (!currentWallet || !currentWalletProvider) return show('sellAlert', '请先连接钱包', 'error');
+      const amountAxon = document.getElementById('sellAmount').value;
+      const priceUsd = document.getElementById('sellPrice').value;
+      const paymentChainId = document.getElementById('sellChain').value;
+      const paymentToken = document.getElementById('sellToken').value;
+      const sellerPaymentAddr = (document.getElementById('sellPaymentAddr').value || '').trim() || currentWallet;
+      if (!amountAxon || !priceUsd) return show('sellAlert', '请填写完整信息', 'error');
+
+      try {
+        await ensureAxonWalletNetwork();
+        const browserProvider = new ethers.BrowserProvider(currentWalletProvider);
+        const signer = await browserProvider.getSigner();
+        const amountWei = ethers.parseEther(String(amountAxon));
+        const priceE6 = Math.round(parseFloat(priceUsd) * 1000000);
+        const iface = new ethers.Interface([
+          'function createOrder(uint256 priceUsdE6, uint256 paymentChainId, string paymentToken, address sellerPaymentAddr)'
+        ]);
+        const data = iface.encodeFunctionData('createOrder', [priceE6, paymentChainId, paymentToken, sellerPaymentAddr]);
+        const tx = await signer.sendTransaction({
+          to: '0x10063340374db851e2628D06F4732d5FF814eB34',
+          data,
+          value: amountWei
+        });
+
+        openModal('请等待卖单上链', `<div class="alert info"><span class="spinning">⏳</span> 钱包已提交交易，正在等待创建卖单完成...</div>`);
+        await waitForAxonTxRaw(tx.hash);
+        document.getElementById('sellAmount').value = '';
+        document.getElementById('sellPrice').value = '';
+        document.getElementById('sellPaymentAddr').value = '';
+        updateSellTotal();
+        await refreshConnectedWalletInfo().catch(()=>{});
+        await loadOrders(true, 'manual').catch(()=>{});
+        await loadMyOrders().catch(()=>{});
+        closeModal();
+        show('sellAlert', '卖单创建成功', 'success');
+        switchMainTab('mine');
+      } catch (e) {
+        show('sellAlert', e.message || '创建卖单失败', 'error');
+      }
+    }
+
+    function updateSellTotal() {
+      const amount = Number(document.getElementById('sellAmount').value || 0);
+      const price = Number(document.getElementById('sellPrice').value || 0);
+      const total = amount * price * 0.997;
+      document.getElementById('sellTotal').textContent = `$${total.toFixed(2)}`;
+    }
+
+    async function manualRefresh(ev) {
+      const btn = ev?.target || document.getElementById('refreshBtn');
+      try {
+        if (btn) btn.innerHTML = '<span class="spinning">⟳</span> 刷新中';
+        await loadOrders(true, 'manual');
+      } catch (e) {
+        setRefreshStatus('刷新失败', 'error');
+        show('marketAlert', e.message, 'error');
+      } finally {
+        if (btn) btn.textContent = '刷新';
+      }
+    }
+
+    function fillBotForm(bot) {
+      const s = bot?.strategy || {};
+      document.getElementById('botMaxPrice').value = s.maxPriceUsd ?? '';
+      document.getElementById('botMinAmount').value = s.minAmountAxon ?? '';
+      document.getElementById('botChain').value = s.paymentChainId ?? '';
+      document.getElementById('botToken').value = s.paymentToken ?? '';
+      document.getElementById('botInterval').value = bot?.intervalMs ?? 10000;
+      document.getElementById('botBuyerAddress').value = s.buyerAddress || currentWallet || '';
+      document.getElementById('botOnlyPurchasable').checked = s.onlyPurchasable !== false;
+      document.getElementById('botAutoExecute').checked = s.autoExecute === true;
+      document.getElementById('botStatus').textContent = bot?.enabled ? (bot?.running ? '运行中' : '已启动') : '已停止';
+      document.getElementById('botLastRun').textContent = bot?.lastRunAt ? new Date(bot.lastRunAt).toLocaleString() : '-';
+      document.getElementById('botLastOrder').textContent = bot?.lastMatchedOrderId ?? '-';
+      document.getElementById('botLastAction').textContent = bot?.lastAction || '-';
+      document.getElementById('botLastError').textContent = bot?.lastError || '-';
+      document.getElementById('botHistory').innerHTML = (bot?.history || []).length
+        ? bot.history.map(item => `
+          <div class="history-item">
+            <div><strong>${escapeHtml(item.type || 'event')}</strong></div>
+            <div class="muted" style="font-size:12px;">${escapeHtml(item.at || '')}</div>
+            <div style="margin-top:4px;font-size:13px;word-break:break-all;">${escapeHtml(item.message || (item.orderId != null ? `订单 #${item.orderId}` : ''))}</div>
+            <div class="history-meta">
+              ${item.orderId != null ? `<span class="mini-tag">订单 #${escapeHtml(String(item.orderId))}</span>` : ''}
+              ${item.amount ? `<span class="mini-tag">金额 ${escapeHtml(String(item.amount))}</span>` : ''}
+              ${item.token ? `<span class="mini-tag">${escapeHtml(String(item.token))}</span>` : ''}
+              ${item.paymentAddress ? `<span class="mini-tag">付款地址已记录</span>` : ''}
+            </div>
+          </div>`).join('')
+        : '<div class="empty" style="padding:18px 12px;">暂无机器人记录</div>';
+    }
+
+    async function loadBotState() {
+      const data = await api('/api/bot');
+      if (!data.success) throw new Error(data.error || '加载机器人状态失败');
+      fillBotForm(data.bot);
+    }
+
+    async function saveBotConfig() {
+      clear('botAlert');
+      const botPrivateKey = document.getElementById('botPrivateKey').value.trim();
+      if (botPrivateKey) {
+        const importResp = await api('/api/wallet/import', { method: 'POST', body: JSON.stringify({ privateKey: botPrivateKey }) });
+        if (!importResp.success) return show('botAlert', importResp.error || '机器人私钥导入失败', 'error');
+        if (!document.getElementById('botBuyerAddress').value) {
+          document.getElementById('botBuyerAddress').value = importResp.address;
+        }
+      }
+      const payload = {
+        intervalMs: Number(document.getElementById('botInterval').value || 10000),
+        strategy: {
+          maxPriceUsd: document.getElementById('botMaxPrice').value,
+          minAmountAxon: document.getElementById('botMinAmount').value,
+          paymentChainId: document.getElementById('botChain').value,
+          paymentToken: document.getElementById('botToken').value,
+          onlyPurchasable: document.getElementById('botOnlyPurchasable').checked,
+          autoExecute: document.getElementById('botAutoExecute').checked,
+          buyerAddress: document.getElementById('botBuyerAddress').value || currentWallet || ''
+        }
+      };
+      const data = await api('/api/bot/config', { method: 'POST', body: JSON.stringify(payload) });
+      if (!data.success) return show('botAlert', data.error || '保存失败', 'error');
+      fillBotForm(data.bot);
+      show('botAlert', '机器人策略已保存', 'success');
+    }
+
+    async function startBot() {
+      await saveBotConfig();
+      const data = await api('/api/bot/start', { method: 'POST', body: '{}' });
+      if (!data.success) return show('botAlert', data.error || '启动失败', 'error');
+      fillBotForm(data.bot);
+      show('botAlert', '机器人已启动监控', 'success');
+    }
+
+    async function stopBot() {
+      const data = await api('/api/bot/stop', { method: 'POST', body: '{}' });
+      if (!data.success) return show('botAlert', data.error || '停止失败', 'error');
+      fillBotForm(data.bot);
+      show('botAlert', '机器人已停止', 'success');
+    }
+
+    async function runBotOnce() {
+      await saveBotConfig();
+      const data = await api('/api/bot/run-once', { method: 'POST', body: '{}' });
+      if (!data.success) return show('botAlert', data.error || '执行失败', 'error');
+      fillBotForm(data.bot);
+      show('botAlert', '机器人已执行一次扫描', 'success');
+    }
+
+    function startAutoRefresh() {
+      stopAutoRefresh();
+      autoTimer = setInterval(() => {
+        if (isLoadingOrders) return;
+        loadOrders(true, 'auto').catch(()=>{});
+      }, 3000);
+    }
+    function stopAutoRefresh() { if (autoTimer) clearInterval(autoTimer); autoTimer = null; }
+
+    document.getElementById('sellAmount').addEventListener('input', updateSellTotal);
+    document.getElementById('sellPrice').addEventListener('input', updateSellTotal);
+    document.getElementById('modalMask').addEventListener('click', (e) => { if (e.target.id === 'modalMask') closeModal(); });
+
+    loadOrders(false).catch(err => show('marketAlert', err.message, 'error'));
+    loadBotState().catch(()=>{});
+    startAutoRefresh();
+  </script>
+</body>
+</html>
